@@ -16,7 +16,7 @@ from transformers import get_constant_schedule
 from opacus.accountants.utils import get_noise_multiplier
 #Adding this import to help with memory...
 from opacus.utils.batch_memory_manager import BatchMemoryManager
-
+from tqdm import tqdm
  
 def find_all_linear_names(model):
     cls = torch.nn.Linear
@@ -68,7 +68,7 @@ def main(cfg):
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     tokenizer.pad_token = tokenizer.eos_token
 
-    max_length = 500
+    max_length = 500 #Reduced from 500
     torch_format_dataset = TextDatasetNoQASet(cfg.data_path, tokenizer=tokenizer, model_family = cfg.model_family, max_length=max_length, split=cfg.split)
 
     batch_size = cfg.batch_size
@@ -161,28 +161,57 @@ def main(cfg):
         args=training_args,
         data_collator=custom_data_collator,
     )
-    #Moved here to fix error
-    model.config.use_cache = False #silence the warnings. Re-enable for inference
     #Privacy engine: enables differential privacy for training PyTorch models with minimal code changes
     #Initialize optimizer + scheduler FIRST
     train_dataloader = trainer.get_train_dataloader()
     privacy_engine = PrivacyEngine(accountant="prv")
-    #TThis part below is for actually applying DP
+
+    model.train()
+    model.config.use_cache = False  # do this BEFORE make_private
+
+    print(f'Start training: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.')
+
+    # Apply DP wrapping
     model, optimizer, train_dataloader = privacy_engine.make_private(
         module=model,
         optimizer=optimizer,
         data_loader=train_dataloader,
         noise_multiplier=cfg.dp.noise_multiplier,
         max_grad_norm=cfg.dp.max_grad_norm,
+        poisson_sampling=False,
     )
-    #Override the Trainer's dataloader
+
+    # NOW update trainer references, since these may have changed
     trainer.model = model
     trainer.optimizer = optimizer
     trainer.lr_scheduler = scheduler
     trainer.get_train_dataloader = lambda: train_dataloader
 
-    print(f'Start training: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.')
+    with BatchMemoryManager(
+        data_loader=train_dataloader,
+        max_physical_batch_size=1,
+        optimizer=optimizer
+    ) as memory_safe_data_loader:
 
+        optimizer.zero_grad()
+        for step, batch in enumerate(tqdm(memory_safe_data_loader, total=max_steps)):
+            input_ids, labels, attention_mask = batch
+
+            outputs = model(input_ids, labels=labels, attention_mask=attention_mask)
+            loss = outputs.loss
+
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+            scheduler.step()
+
+            if step + 1 >= max_steps:
+               break
+
+
+    """
+    print(f'Start training: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.')
+    
     with BatchMemoryManager(
         data_loader=train_dataloader,
         max_physical_batch_size=1,
@@ -190,8 +219,9 @@ def main(cfg):
     ) as memory_safe_data_loader:
         trainer.get_train_dataloader = lambda: memory_safe_data_loader
         trainer.train()
-
+   
     print(f'Finish training: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.')
+    """
     #Added to keep track of epsilon
     epsilon = privacy_engine.get_epsilon(delta=cfg.dp.delta)
     print(f"DP epsilon: {epsilon}")
