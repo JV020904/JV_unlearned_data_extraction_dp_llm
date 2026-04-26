@@ -1,3 +1,4 @@
+
 # SLURM / cluster output
 *.out
 *.err
@@ -178,3 +179,5 @@ dmypy.json
 cython_debug/
 
 .python-version
+MUSE/Miniconda3-latest-Linux-x86_64.sh
+MUSE/Miniconda3-latest-Linux-x86_64.sh
