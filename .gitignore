@@ -1,3 +1,25 @@
+# SLURM / cluster output
+*.out
+*.err
+
+# HuggingFace / model caches
+.cache/
+huggingface/
+*.lock
+
+# Large model files (extra safety)
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# Temporary / debugging
+*.log
+*.tmp
+
+# VSCode / editor junk
+.vscode/
+
 /checkpoint_updated
 
 

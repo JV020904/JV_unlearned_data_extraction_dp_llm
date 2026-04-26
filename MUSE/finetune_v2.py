@@ -192,10 +192,15 @@ def main(cfg):
         max_physical_batch_size=1,
         optimizer=optimizer
     ) as memory_safe_data_loader:
-
+        device = next(model.parameters()).device
+        print("Training on device:", device, flush=True)
         optimizer.zero_grad()
         for step, batch in enumerate(tqdm(memory_safe_data_loader, total=max_steps)):
             input_ids, labels, attention_mask = batch
+
+            input_ids = input_ids.to(device)
+            labels = labels.to(device)
+            attention_mask = attention_mask.to(device)
 
             outputs = model(input_ids, labels=labels, attention_mask=attention_mask)
             loss = outputs.loss
@@ -204,34 +209,43 @@ def main(cfg):
             optimizer.step()
             optimizer.zero_grad()
             scheduler.step()
-
+            if step % 10 == 0:
+                print(f"step {step}/{max_steps}, loss={loss.item():.4f}", flush=True)
             if step + 1 >= max_steps:
                break
 
 
-    """
-    print(f'Start training: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.')
-    
-    with BatchMemoryManager(
-        data_loader=train_dataloader,
-        max_physical_batch_size=1,
-        optimizer=optimizer
-    ) as memory_safe_data_loader:
-        trainer.get_train_dataloader = lambda: memory_safe_data_loader
-        trainer.train()
-   
-    print(f'Finish training: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.')
-    """
     #Added to keep track of epsilon
     epsilon = privacy_engine.get_epsilon(delta=cfg.dp.delta)
     print(f"DP epsilon: {epsilon}")
 
+    # Save the model
+    print("Saving model...", flush=True)
+
+    # Opacus wraps the model in a GradSampleModule.
+    # The actual Hugging Face model is stored inside model._module.
+    if hasattr(model, "_module"):
+        model_to_save = model._module
+    else:
+        model_to_save = model
+
+    # If using LoRA, merge the LoRA adapter into the base model before saving.
+    if cfg.LoRA.r != 0:
+        model_to_save = model_to_save.merge_and_unload()
+
+    model_to_save.save_pretrained(cfg.save_dir)
+    tokenizer.save_pretrained(cfg.save_dir)
+
+    print("Model saved successfully.", flush=True)
+
+
+    """
     #save the model
     if cfg.LoRA.r != 0:
         model = model.merge_and_unload()
 
     model.save_pretrained(cfg.save_dir)
     tokenizer.save_pretrained(cfg.save_dir)
-
+    """
 if __name__ == "__main__":
     main()

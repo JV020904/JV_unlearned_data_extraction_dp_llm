@@ -5,16 +5,15 @@ split="forget10"
 minus_values=(5.0)
 
 # Set my model paths here
-model_path="/nfs/home/jose/unlearned_data_extraction_llm_dp/checkpoint_updated/MUSE/clean_dp_forget"
-pretrained_path="/nfs/home/jose/unlearned_data_extraction_llm_dp/checkpoint_updated/MUSE/clean_dp_full"
-
+model_path="../checkpoint_updated/MUSE/final_ft_noLORA_5_epochs_inst_lr1e-05_phi_full_minus_forget10_seed42_1"
+pretrained_path="../checkpoint_updated/MUSE/final_ft_noLORA_5_epochs_inst_lr1e-05_phi_full_seed42_1"
 
 for minus in "${minus_values[@]}"; do
     echo "Processing minus value: $minus"
 
-    CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=1 --master_port=$port evaluate_util.py \
+    CUDA_VISIBLE_DEVICES=0 torchrun --nproc_per_node=1 --master_port=$port evaluate_util.py \
         model_family=$model_family \
-        batch_size=1 \
+        batch_size=100 \
         split=$split \
         model_path=$model_path \
         +minus_value=$minus \

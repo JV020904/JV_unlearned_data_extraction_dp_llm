@@ -5,8 +5,10 @@ from matplotlib import pyplot as plt
 # Define the keywords and the directory to search
 key_words = ['rougeL_recall']
 #src_directory = '../checkpoint_updated/MUSE'  # Current directory
-src_directory = '/projects/unlearning_models'
+#src_directory = '/projects/unlearning_models'
 
+
+src_directory = '../checkpoint_updated/MUSE'
 threshold_list = [0.9, 0.99, 0.0]
 use_threshold_list = [True, True, False]
 
@@ -19,10 +21,14 @@ for threshold, use_threshold in zip(threshold_list, use_threshold_list):
     else:
         print('Metric: Average RougeL(R)')
     for dirname in os.listdir(src_directory):
+        if "lr1e-05_phi_full_minus_forget10_seed42_1" not in dirname:
+            continue
+
+
         basedirname = os.path.join(src_directory, dirname)
 
         for checkpointname in os.listdir(basedirname):
-            if not checkpointname.startswith('checkpoint-5553'): #Changed from 5553
+            if not checkpointname.startswith('checkpoint-10350'): #Changed from 5553
                 continue
             directory = os.path.join(basedirname, checkpointname)
             # Traverse all JSON files in the directory

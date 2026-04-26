@@ -161,8 +161,8 @@ def main(cfg):
 
     if os.environ.get('LOCAL_RANK') is not None:
         local_rank = int(os.environ.get('LOCAL_RANK', '0'))
-        device_map = {'': local_rank}
-
+        #device_map = {'': local_rank}
+        device_map= "auto"
     os.environ["WANDB_DISABLED"] = "true"
     model_cfg = get_model_identifiers_from_yaml(cfg.model_family)
     model_id = model_cfg["hf_key"]
@@ -210,7 +210,16 @@ def main(cfg):
             try:
 
                 print(f"Loading pretrained from {cfg.pretrained_path}")
-                pretrained_model = AutoModelForCausalLM.from_pretrained(cfg.pretrained_path, config=config, use_flash_attention_2=model_cfg["flash_attention2"]=="true", torch_dtype=torch.bfloat16, trust_remote_code = True, device_map=device_map)
+                #pretrained_model = AutoModelForCausalLM.from_pretrained(cfg.pretrained_path, config=config, use_flash_attention_2=model_cfg["flash_attention2"]=="true", torch_dtype=torch.bfloat16, trust_remote_code = True, device_map=device_map)
+                pretrained_model = AutoModelForCausalLM.from_pretrained(
+                    cfg.pretrained_path,
+                    config=config,
+                    use_flash_attention_2=False,
+                    torch_dtype=torch.bfloat16,
+                    trust_remote_code=True,
+                    device_map="cpu"
+                )
+                pretrained_model.eval()
             except Exception as e:
                 print(e)
                 continue
@@ -390,13 +399,19 @@ def contrasting_generation(model, inputs, cfg, left_pad_tokenizer, tokenizer, pr
         
         if pretrained_model is not None:
             # model_inputs_pre=prepare_inputs_id(pretrained_model, input_ids, logits_processor, stopping_criteria, generation_config, synced_gpus, streamer , **model_kwargs1)
-            model_inputs_pre = pretrained_model.prepare_inputs_for_generation(input_ids, **model_kwargs1)
-
+            #model_inputs_pre = pretrained_model.prepare_inputs_for_generation(input_ids, **model_kwargs1)
+            model_inputs_pre = pretrained_model.prepare_inputs_for_generation(
+                input_ids.to("cpu"),
+                **{k: v.to("cpu") if torch.is_tensor(v) else v for k, v in model_kwargs1.items()}
+            )
         outputs0 = model(**model_inputs, return_dict=True)
         logits0 = outputs0.logits[:, -1, :].float()
         if pretrained_model is not None:
             outputs1 = pretrained_model(**model_inputs_pre, return_dict=True)
-            logits1 = outputs1.logits[:, -1, :].float()
+            logits1 = outputs1.logits[:, -1, :].float().to(logits0.device)
+            #UPDATE: The below was replaces with the above 
+            #second model moved to CPU(pretrained) logits0(GPU) is the forget model
+            #logits1 = outputs1.logits[:, -1, :].float()
         else:
             outputs1 = outputs0
             logits1 = outputs1.logits[:, -1, :].float()
