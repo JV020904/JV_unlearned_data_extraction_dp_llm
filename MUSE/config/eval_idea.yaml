@@ -22,9 +22,9 @@ perturbed_answer_key: [perturbed_answer, perturbed_answer, perturbed_answe]
 eval_task: [eval_log_forget, eval_log_forget, eval_log_forget]
 
 generation:
-  max_length: 200
+  max_length: 100 
   max_new_tokens: null
-
+#reduced gen length from 200
 save_generated_text: true
 
 ds_size: 300
@@ -32,9 +32,20 @@ ds_size: 300
 overwrite: true
 use_pretrained: false
 
-batch_size: 300
+batch_size: 100
+#For first run
+#gamma_list: [1.0]
 
-gamma_list: [1.0, -1.0, -2.0]
+#For second run
+#gamma_list: [-1.0]
 
-logsoftmax_list: [True, True, True]
-sample_list: [False, False, False]
+#For third run
+#gamma_list: [-2.0]
+
+
+logsoftmax_list: [True]
+sample_list: [False]
+
+
+#logsoftmax_list: [True, True, True]
+#sample_list: [False, False, False]

@@ -83,9 +83,11 @@ def get_dataloader(cfg, eval_task, tokenizer, folder, split, question_key, answe
             split=split, 
         ) 
 
-
-    torch_format_dataset.data = torch_format_dataset.data.select(range(len(torch_format_dataset.data)))
-
+    #UPDATE: COmmented this out to replace
+    #torch_format_dataset.data = torch_format_dataset.data.select(range(len(torch_format_dataset.data)))
+    limit = min(cfg.ds_size, len(torch_format_dataset.data))
+    torch_format_dataset.data = torch_format_dataset.data.select(range(limit))
+    
     eval_dataloader = torch.utils.data.DataLoader(
         torch_format_dataset, batch_size=cfg.batch_size, collate_fn=custom_data_collator)
 
