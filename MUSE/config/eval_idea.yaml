@@ -27,7 +27,7 @@ generation:
 #reduced gen length from 200
 save_generated_text: true
 
-ds_size: 600
+ds_size: 2000
 
 overwrite: true
 use_pretrained: false

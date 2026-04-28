@@ -14,7 +14,7 @@ for minus in "${minus_values[@]}"; do
 
     CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=1 --master_port=$port evaluate_util.py \
         model_family=$model_family \
-        batch_size=10 \
+        batch_size=50 \
         split=$split \
         model_path=$model_path \
         +minus_value=$minus \
