@@ -27,7 +27,7 @@ generation:
 #reduced gen length from 200
 save_generated_text: true
 
-ds_size: 300
+ds_size: 600
 
 overwrite: true
 use_pretrained: false
@@ -40,7 +40,7 @@ batch_size: 100
 #gamma_list: [-1.0]
 
 #For third run
-#gamma_list: [-2.0]
+gamma_list: [-2.0]
 
 
 logsoftmax_list: [True]
