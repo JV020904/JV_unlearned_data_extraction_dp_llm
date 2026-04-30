@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-methods = ["Pre-Unlearning", "Our Extraction", "Post-Unlearning"]
+methods = ["Pre-Unlearning Model", "DP-Adam Extraction", "Post-Unlearning"]
 rouge = [0.22552827456796937, 0.22474863054124058, 0.22475395353857336]
 
 plt.figure(figsize=(7, 5))
